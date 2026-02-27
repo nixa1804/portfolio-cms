@@ -4,6 +4,11 @@ import ProjectCard from '@/components/projects/ProjectCard'
 export const metadata = {
   title: 'Projects | Portfolio CMS',
   description: 'Browse all portfolio projects.',
+  openGraph: {
+    title: 'Projects | Portfolio CMS',
+    description: 'Browse all portfolio projects.',
+    type: 'website',
+  },
 }
 
 export default async function ProjectsPage() {

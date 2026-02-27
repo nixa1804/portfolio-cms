@@ -8,9 +8,16 @@ const geist = Geist({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
   title: 'Portfolio CMS',
   description:
     'Portfolio CMS enables content updates for project cards, descriptions, and highlights without editing source code directly.',
+  openGraph: {
+    title: 'Portfolio CMS',
+    description:
+      'Portfolio CMS enables content updates for project cards, descriptions, and highlights without editing source code directly.',
+    type: 'website',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
