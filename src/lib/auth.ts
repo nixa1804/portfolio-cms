@@ -9,6 +9,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    authorized({ auth, request: { nextUrl } }) {
+      if (nextUrl.pathname === '/admin/login') return true
+      return !!auth?.user
+    },
     async signIn({ profile }) {
       const adminUsername = process.env.ADMIN_GITHUB_USERNAME
       if (!adminUsername) return false
@@ -29,6 +33,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return token
     },
+  },
+  session: {
+    strategy: 'jwt',
+    maxAge: 7 * 24 * 60 * 60,
   },
   pages: {
     signIn: '/admin/login',
