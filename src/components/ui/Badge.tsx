@@ -13,7 +13,7 @@ interface BadgeProps {
 export default function Badge({ status }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusStyles[status]}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium sm:px-3 sm:py-1 sm:text-sm ${statusStyles[status]}`}
     >
       {status}
     </span>

@@ -14,12 +14,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="flex min-h-screen flex-col bg-zinc-50">
       {session && (
         <header className="border-b border-zinc-200 bg-white">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
-            <div className="flex items-center gap-4 sm:gap-6">
-              <Link href="/admin" className="text-sm font-semibold text-zinc-900">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-3 py-3 sm:px-6 sm:py-4">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-6">
+              <Link href="/admin" className="shrink-0 text-sm font-semibold text-zinc-900">
                 Portfolio CMS
               </Link>
-              <nav className="flex items-center gap-3 sm:gap-4">
+              <nav className="flex items-center gap-2 sm:gap-4">
                 <Link
                   href="/admin/projects"
                   className="text-sm text-zinc-600 hover:text-zinc-900"
@@ -32,8 +32,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </nav>
             </div>
 
-            <div className="flex items-center gap-3">
-              <span className="max-w-[120px] truncate text-xs text-zinc-500">{session.user?.name}</span>
+            <div className="ml-2 flex shrink-0 items-center gap-2 sm:gap-3">
+              <span className="max-w-[60px] truncate text-xs text-zinc-500 sm:max-w-[120px]">{session.user?.name}</span>
               <form
                 action={async () => {
                   'use server'
@@ -42,7 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               >
                 <button
                   type="submit"
-                  className="cursor-pointer rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                  className="cursor-pointer whitespace-nowrap rounded-md border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
                 >
                   Sign out
                 </button>
