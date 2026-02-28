@@ -1,7 +1,5 @@
-import { Suspense } from 'react'
 import { getAllProjects } from '@/lib/queries'
 import ProjectCard from '@/components/projects/ProjectCard'
-import TagFilter from '@/components/projects/TagFilter'
 
 export const metadata = {
   title: 'Projects | Portfolio CMS',
@@ -13,21 +11,8 @@ export const metadata = {
   },
 }
 
-interface PageProps {
-  searchParams: Promise<{ tag?: string }>
-}
-
-export default async function ProjectsPage({ searchParams }: PageProps) {
-  const { tag } = await searchParams
-  const allProjects = await getAllProjects()
-
-  const filtered = tag
-    ? allProjects.filter((p) =>
-        p.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
-      )
-    : allProjects
-
-  const allTags = Array.from(new Set(allProjects.flatMap((p) => p.tags))).sort()
+export default async function ProjectsPage() {
+  const projects = await getAllProjects()
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-16">
@@ -38,17 +23,11 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
         <h1 className="text-3xl font-bold text-zinc-900 sm:text-4xl">Projects</h1>
       </header>
 
-      <Suspense>
-        <TagFilter tags={allTags} activeTag={tag ?? null} />
-      </Suspense>
-
-      {filtered.length === 0 ? (
-        <p className="text-zinc-500">
-          {tag ? `No projects tagged "${tag}".` : 'No projects yet.'}
-        </p>
+      {projects.length === 0 ? (
+        <p className="text-zinc-500">No projects yet.</p>
       ) : (
         <div className="grid gap-4">
-          {filtered.map((project) => (
+          {projects.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}
         </div>
