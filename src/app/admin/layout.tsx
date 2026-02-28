@@ -33,7 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="hidden text-xs text-zinc-500 sm:inline">{session.user?.name}</span>
+              <span className="max-w-[120px] truncate text-xs text-zinc-500">{session.user?.name}</span>
               <form
                 action={async () => {
                   'use server'

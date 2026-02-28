@@ -67,8 +67,8 @@ export default function ProjectsTable({ projects }: ProjectsTableProps) {
         />
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
-        <table className="w-full min-w-[480px] text-sm">
+      <div className="rounded-lg border border-zinc-200 bg-white">
+        <table className="w-full text-sm">
           <thead className="border-b border-zinc-200 bg-zinc-50">
             <tr>
               <th className="px-3 py-3 text-left font-medium text-zinc-600 sm:px-4">Project</th>
@@ -104,15 +104,23 @@ export default function ProjectsTable({ projects }: ProjectsTableProps) {
                   <div className="flex items-center justify-end gap-2">
                     <Link
                       href={`/admin/projects/${project.slug}/edit`}
-                      className="rounded border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100"
+                      className="inline-flex items-center gap-1.5 rounded border border-zinc-200 px-2 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-100 sm:px-2.5 sm:py-1"
+                      title="Edit"
                     >
-                      Edit
+                      <svg className="h-3.5 w-3.5 sm:hidden" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 2.5l2.5 2.5-8 8H3v-2.5l8-8z" />
+                      </svg>
+                      <span className="hidden sm:inline">Edit</span>
                     </Link>
                     <button
                       onClick={() => setPendingDelete({ slug: project.slug, title: project.title })}
-                      className="rounded border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                      className="inline-flex items-center gap-1.5 rounded border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 sm:px-2.5 sm:py-1"
+                      title="Delete"
                     >
-                      Delete
+                      <svg className="h-3.5 w-3.5 sm:hidden" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2.5 4.5h11M6 4.5V3h4v1.5M4.5 4.5l.75 8h5.5l.75-8" />
+                      </svg>
+                      <span className="hidden sm:inline">Delete</span>
                     </button>
                   </div>
                 </td>
