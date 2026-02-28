@@ -5,29 +5,39 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Project } from '@/lib/types'
 import Badge from '@/components/ui/Badge'
+import ConfirmModal from '@/components/ui/ConfirmModal'
+import { useToast } from '@/components/ToastProvider'
 
 interface ProjectsTableProps {
   projects: Project[]
 }
 
+interface PendingDelete {
+  slug: string
+  title: string
+}
+
 export default function ProjectsTable({ projects }: ProjectsTableProps) {
   const router = useRouter()
-  const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
+  const { addToast } = useToast()
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
-  async function handleDelete(slug: string, title: string) {
-    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return
-
-    setDeletingSlug(slug)
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    setDeleting(true)
     try {
-      const res = await fetch(`/api/projects/${slug}`, { method: 'DELETE' })
+      const res = await fetch(`/api/projects/${pendingDelete.slug}`, { method: 'DELETE' })
       if (!res.ok) {
         const data = await res.json()
-        alert(data.error ?? 'Failed to delete project')
+        addToast(data.error ?? 'Failed to delete project', 'error')
         return
       }
+      addToast(`"${pendingDelete.title}" deleted.`, 'success')
       router.refresh()
     } finally {
-      setDeletingSlug(null)
+      setDeleting(false)
+      setPendingDelete(null)
     }
   }
 
@@ -46,60 +56,71 @@ export default function ProjectsTable({ projects }: ProjectsTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
-      <table className="w-full min-w-[480px] text-sm">
-        <thead className="border-b border-zinc-200 bg-zinc-50">
-          <tr>
-            <th className="px-3 py-3 text-left font-medium text-zinc-600 sm:px-4">Project</th>
-            <th className="px-3 py-3 text-left font-medium text-zinc-600 sm:px-4">Status</th>
-            <th className="hidden px-3 py-3 text-left font-medium text-zinc-600 sm:table-cell sm:px-4">Case study</th>
-            <th className="px-3 py-3 text-right font-medium text-zinc-600 sm:px-4">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-zinc-100">
-          {projects.map((project) => (
-            <tr key={project.id} className="hover:bg-zinc-50">
-              <td className="px-3 py-3 sm:px-4">
-                <div>
-                  <Link
-                    href={`/projects/${project.slug}`}
-                    target="_blank"
-                    className="font-medium text-zinc-900 hover:text-blue-600"
-                  >
-                    {project.title}
-                  </Link>
-                  <p className="text-xs text-zinc-400">/{project.slug}</p>
-                </div>
-              </td>
-              <td className="px-3 py-3 sm:px-4">
-                <Badge status={project.status} />
-              </td>
-              <td className="hidden px-3 py-3 sm:table-cell sm:px-4">
-                <span className={`text-xs ${project.hasCaseStudy ? 'text-green-600' : 'text-zinc-400'}`}>
-                  {project.hasCaseStudy ? 'Yes' : 'No'}
-                </span>
-              </td>
-              <td className="px-3 py-3 text-right sm:px-4">
-                <div className="flex items-center justify-end gap-2">
-                  <Link
-                    href={`/admin/projects/${project.slug}/edit`}
-                    className="rounded border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100"
-                  >
-                    Edit
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(project.slug, project.title)}
-                    disabled={deletingSlug === project.slug}
-                    className="rounded border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-                  >
-                    {deletingSlug === project.slug ? '...' : 'Delete'}
-                  </button>
-                </div>
-              </td>
+    <>
+      {pendingDelete && (
+        <ConfirmModal
+          title="Delete project?"
+          message={`"${pendingDelete.title}" will be permanently deleted. This cannot be undone.`}
+          loading={deleting}
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
+
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
+        <table className="w-full min-w-[480px] text-sm">
+          <thead className="border-b border-zinc-200 bg-zinc-50">
+            <tr>
+              <th className="px-3 py-3 text-left font-medium text-zinc-600 sm:px-4">Project</th>
+              <th className="px-3 py-3 text-left font-medium text-zinc-600 sm:px-4">Status</th>
+              <th className="hidden px-3 py-3 text-left font-medium text-zinc-600 sm:table-cell sm:px-4">Case study</th>
+              <th className="px-3 py-3 text-right font-medium text-zinc-600 sm:px-4">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {projects.map((project) => (
+              <tr key={project.id} className="hover:bg-zinc-50">
+                <td className="px-3 py-3 sm:px-4">
+                  <div>
+                    <Link
+                      href={`/projects/${project.slug}`}
+                      target="_blank"
+                      className="font-medium text-zinc-900 hover:text-blue-600"
+                    >
+                      {project.title}
+                    </Link>
+                    <p className="text-xs text-zinc-400">/{project.slug}</p>
+                  </div>
+                </td>
+                <td className="px-3 py-3 sm:px-4">
+                  <Badge status={project.status} />
+                </td>
+                <td className="hidden px-3 py-3 sm:table-cell sm:px-4">
+                  <span className={`text-xs ${project.hasCaseStudy ? 'text-green-600' : 'text-zinc-400'}`}>
+                    {project.hasCaseStudy ? 'Yes' : 'No'}
+                  </span>
+                </td>
+                <td className="px-3 py-3 text-right sm:px-4">
+                  <div className="flex items-center justify-end gap-2">
+                    <Link
+                      href={`/admin/projects/${project.slug}/edit`}
+                      className="rounded border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => setPendingDelete({ slug: project.slug, title: project.title })}
+                      className="rounded border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }

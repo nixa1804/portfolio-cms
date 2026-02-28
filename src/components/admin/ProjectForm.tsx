@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Project, ProjectStatus } from '@/lib/types'
+import { useToast } from '@/components/ToastProvider'
 
 interface ProjectFormProps {
   project?: Project
@@ -10,8 +11,61 @@ interface ProjectFormProps {
 
 const STATUS_OPTIONS: ProjectStatus[] = ['In Development', 'Completed', 'Archived']
 
+type FieldErrors = Record<string, string>
+
+function validate(fields: {
+  title: string
+  slug: string
+  description: string
+  goals: string
+  hasCaseStudy: boolean
+  challenge: string
+  solution: string
+  architecture: string
+  outcomes: string
+}): FieldErrors {
+  const errors: FieldErrors = {}
+
+  if (!fields.title.trim()) errors.title = 'Title is required'
+  if (!fields.slug.trim()) {
+    errors.slug = 'Slug is required'
+  } else if (!/^[a-z0-9-]+$/.test(fields.slug)) {
+    errors.slug = 'Only lowercase letters, numbers, and hyphens'
+  }
+  if (!fields.description.trim()) errors.description = 'Description is required'
+  if (!fields.goals.split('\n').map((g) => g.trim()).filter(Boolean).length) {
+    errors.goals = 'At least one goal is required'
+  }
+  if (fields.hasCaseStudy) {
+    if (!fields.challenge.trim()) errors.challenge = 'Challenge is required'
+    if (!fields.solution.trim()) errors.solution = 'Solution is required'
+    if (!fields.architecture.split('\n').map((a) => a.trim()).filter(Boolean).length) {
+      errors.architecture = 'At least one architecture point is required'
+    }
+    if (!fields.outcomes.split('\n').map((o) => o.trim()).filter(Boolean).length) {
+      errors.outcomes = 'At least one outcome is required'
+    }
+  }
+
+  return errors
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null
+  return <p className="mt-1 text-xs text-red-600">{message}</p>
+}
+
+function inputClass(hasError: boolean) {
+  return `w-full rounded-md border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 ${
+    hasError
+      ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+      : 'border-zinc-300 focus:border-blue-500 focus:ring-blue-500'
+  }`
+}
+
 export default function ProjectForm({ project }: ProjectFormProps) {
   const router = useRouter()
+  const { addToast } = useToast()
   const isEdit = !!project
 
   const [title, setTitle] = useState(project?.title ?? '')
@@ -28,8 +82,20 @@ export default function ProjectForm({ project }: ProjectFormProps) {
   )
   const [outcomes, setOutcomes] = useState(project?.caseStudy?.outcomes.join('\n') ?? '')
   const [orderIndex, setOrderIndex] = useState(project?.orderIndex ?? 0)
-  const [error, setError] = useState<string | null>(null)
+
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [loading, setLoading] = useState(false)
+
+  function getFields() {
+    return { title, slug, description, goals, hasCaseStudy, challenge, solution, architecture, outcomes }
+  }
+
+  function touch(name: string) {
+    setTouched((prev) => ({ ...prev, [name]: true }))
+    const errors = validate(getFields())
+    setFieldErrors(errors)
+  }
 
   function slugify(value: string) {
     return value
@@ -46,9 +112,20 @@ export default function ProjectForm({ project }: ProjectFormProps) {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setError(null)
+
+    // Touch all fields and validate before submit
+    const allTouched = Object.fromEntries(
+      ['title', 'slug', 'description', 'goals', 'challenge', 'solution', 'architecture', 'outcomes'].map(
+        (k) => [k, true]
+      )
+    )
+    setTouched(allTouched)
+    const errors = validate(getFields())
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
     setLoading(true)
 
     const payload = {
@@ -83,38 +160,37 @@ export default function ProjectForm({ project }: ProjectFormProps) {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error ?? 'Something went wrong')
+        addToast(data.error ?? 'Something went wrong', 'error')
         return
       }
 
+      addToast(isEdit ? 'Project saved.' : 'Project created.', 'success')
       router.push('/admin/projects')
       router.refresh()
     } catch {
-      setError('Network error. Please try again.')
+      addToast('Network error. Please try again.', 'error')
     } finally {
       setLoading(false)
     }
   }
 
+  // Helper: return error only if field was touched
+  const e = (name: string) => (touched[name] ? fieldErrors[name] : undefined)
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200">
-          {error}
-        </div>
-      )}
-
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-zinc-700">Title</label>
           <input
             type="text"
             value={title}
-            onChange={(e) => handleTitleChange(e.target.value)}
-            required
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            onChange={(ev) => handleTitleChange(ev.target.value)}
+            onBlur={() => touch('title')}
+            className={inputClass(!!e('title'))}
             placeholder="Portfolio CMS"
           />
+          <FieldError message={e('title')} />
         </div>
 
         <div>
@@ -122,14 +198,16 @@ export default function ProjectForm({ project }: ProjectFormProps) {
           <input
             type="text"
             value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            required
+            onChange={(ev) => setSlug(ev.target.value)}
+            onBlur={() => touch('slug')}
             disabled={isEdit}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-zinc-50 disabled:text-zinc-500"
+            className={`${inputClass(!!e('slug'))} disabled:bg-zinc-50 disabled:text-zinc-500`}
             placeholder="portfolio-cms"
           />
-          {isEdit && (
+          {isEdit ? (
             <p className="mt-1 text-xs text-zinc-500">Slug cannot be changed after creation.</p>
+          ) : (
+            <FieldError message={e('slug')} />
           )}
         </div>
       </div>
@@ -139,7 +217,7 @@ export default function ProjectForm({ project }: ProjectFormProps) {
           <label className="mb-1.5 block text-sm font-medium text-zinc-700">Status</label>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value as ProjectStatus)}
+            onChange={(ev) => setStatus(ev.target.value as ProjectStatus)}
             className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             {STATUS_OPTIONS.map((s) => (
@@ -153,7 +231,7 @@ export default function ProjectForm({ project }: ProjectFormProps) {
           <input
             type="number"
             value={orderIndex}
-            onChange={(e) => setOrderIndex(Number(e.target.value))}
+            onChange={(ev) => setOrderIndex(Number(ev.target.value))}
             className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
@@ -163,12 +241,13 @@ export default function ProjectForm({ project }: ProjectFormProps) {
         <label className="mb-1.5 block text-sm font-medium text-zinc-700">Description</label>
         <textarea
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          required
+          onChange={(ev) => setDescription(ev.target.value)}
+          onBlur={() => touch('description')}
           rows={3}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className={inputClass(!!e('description'))}
           placeholder="Describe the project..."
         />
+        <FieldError message={e('description')} />
       </div>
 
       <div>
@@ -178,8 +257,8 @@ export default function ProjectForm({ project }: ProjectFormProps) {
         <input
           type="text"
           value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          onChange={(ev) => setTags(ev.target.value)}
+          className={inputClass(false)}
           placeholder="Next.js, TypeScript, Tailwind CSS"
         />
       </div>
@@ -190,12 +269,13 @@ export default function ProjectForm({ project }: ProjectFormProps) {
         </label>
         <textarea
           value={goals}
-          onChange={(e) => setGoals(e.target.value)}
-          required
+          onChange={(ev) => setGoals(ev.target.value)}
+          onBlur={() => touch('goals')}
           rows={4}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className={inputClass(!!e('goals'))}
           placeholder="Enable content edits without full code deployments.&#10;Keep the editing workflow simple and fast."
         />
+        <FieldError message={e('goals')} />
       </div>
 
       <div className="rounded-md border border-zinc-200 p-4">
@@ -203,7 +283,7 @@ export default function ProjectForm({ project }: ProjectFormProps) {
           <input
             type="checkbox"
             checked={hasCaseStudy}
-            onChange={(e) => setHasCaseStudy(e.target.checked)}
+            onChange={(ev) => setHasCaseStudy(ev.target.checked)}
             className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
           />
           <span className="text-sm font-medium text-zinc-700">Include case study</span>
@@ -215,22 +295,24 @@ export default function ProjectForm({ project }: ProjectFormProps) {
               <label className="mb-1.5 block text-sm font-medium text-zinc-700">Challenge</label>
               <textarea
                 value={challenge}
-                onChange={(e) => setChallenge(e.target.value)}
-                required={hasCaseStudy}
+                onChange={(ev) => setChallenge(ev.target.value)}
+                onBlur={() => touch('challenge')}
                 rows={2}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={inputClass(!!e('challenge'))}
               />
+              <FieldError message={e('challenge')} />
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-zinc-700">Solution</label>
               <textarea
                 value={solution}
-                onChange={(e) => setSolution(e.target.value)}
-                required={hasCaseStudy}
+                onChange={(ev) => setSolution(ev.target.value)}
+                onBlur={() => touch('solution')}
                 rows={2}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={inputClass(!!e('solution'))}
               />
+              <FieldError message={e('solution')} />
             </div>
 
             <div>
@@ -239,11 +321,12 @@ export default function ProjectForm({ project }: ProjectFormProps) {
               </label>
               <textarea
                 value={architecture}
-                onChange={(e) => setArchitecture(e.target.value)}
-                required={hasCaseStudy}
+                onChange={(ev) => setArchitecture(ev.target.value)}
+                onBlur={() => touch('architecture')}
                 rows={4}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={inputClass(!!e('architecture'))}
               />
+              <FieldError message={e('architecture')} />
             </div>
 
             <div>
@@ -252,11 +335,12 @@ export default function ProjectForm({ project }: ProjectFormProps) {
               </label>
               <textarea
                 value={outcomes}
-                onChange={(e) => setOutcomes(e.target.value)}
-                required={hasCaseStudy}
+                onChange={(ev) => setOutcomes(ev.target.value)}
+                onBlur={() => touch('outcomes')}
                 rows={4}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={inputClass(!!e('outcomes'))}
               />
+              <FieldError message={e('outcomes')} />
             </div>
           </div>
         )}

@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import { signOut } from '@/lib/auth'
+import ToastProvider from '@/components/ToastProvider'
 
 export const metadata = {
   title: 'Admin | Portfolio CMS',
@@ -51,7 +52,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </header>
       )}
 
-      <main className={session ? 'mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10' : 'flex flex-1 flex-col'}>{children}</main>
+      <ToastProvider>
+        <main className={session ? 'mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10' : 'flex flex-1 flex-col'}>{children}</main>
+      </ToastProvider>
     </div>
   )
 }

@@ -13,7 +13,9 @@ A headless content management system for managing portfolio projects. Built with
 - **GitHub OAuth** — single-admin authentication via GitHub, whitelisted by username
 - **REST API** — `/api/projects` endpoints consumed by the admin panel
 - **Case studies** — optional per-project deep-dive with challenge, solution, architecture, and outcomes
+- **Tag filtering** — filter projects by technology tag on the public listing page
 - **Status system** — In Development / Completed / Archived with colour-coded badges
+- **Form validation** — inline field-level validation with error feedback before submit
 - **Persistent sessions** — JWT-based, 7-day cookie lifetime
 - **Responsive** — mobile-first layout throughout
 
@@ -23,7 +25,7 @@ A headless content management system for managing portfolio projects. Built with
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 |
 | Database | Turso (cloud SQLite via `@libsql/client`) |
